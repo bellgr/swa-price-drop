@@ -1,0 +1,18 @@
+{
+  "name": "swa-price-drop",
+  "version": "1.0.0",
+  "description": "Check for price drops in Southwest fare prices for specific outbound and return flight numbers",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/barrettc/swa-price-drop"
+  },
+  "author": "Barrett Cervenka",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.0.1",
+    "osmosis": "^1.1.0",
+    "twilio": "^2.10.0",
+    "js-yaml": "^3.6.1",
+    "winston": "^2.2.0"
+  }
+}

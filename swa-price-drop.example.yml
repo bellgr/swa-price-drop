@@ -1,0 +1,33 @@
+flights:
+  - outboundFlightNumber: 1553
+    returnFlightNumber: 2819
+    originAirport: AUS
+    destinationAirport: RIC
+    outboundDate: 11/19/2016
+    returnDate: 11/24/2016
+    adultPassengerCount: 1
+    outboundPrice: 170
+    returnPrice: 170
+  - outboundFlightNumber: 4288
+    returnFlightNumber: 233
+    originAirport: AUS
+    destinationAirport: MSY
+    outboundDate: 2/17/2017
+    returnDate: 2/20/2017
+    adultPassengerCount: 1
+    outboundPrice: 255
+    returnPrice: 255
+  - outboundFlightNumber: 5030
+    returnFlightNumber: 6592
+    originAirport: AUS
+    destinationAirport: MCO
+    outboundDate: 3/11/2017
+    returnDate: 3/18/2017
+    adultPassengerCount: 1
+    outboundPrice: 219
+    returnPrice: 241
+twilio:
+  account_sid: [your twilio account_sid]
+  auth_token: [your twilio auth_token]
+  from: '+15121234567'
+  to: '+15121234567'
