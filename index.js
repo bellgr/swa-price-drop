@@ -32,10 +32,6 @@ process.argv.forEach((arg, i, argv) => {
 
 var logger = new (winston.Logger)({
   transports: [
-    new (winston.transports.Console)({
-      timestamp: true,
-      level: 'info'
-    }),
     new (winston.transports.File)({
       timestamp: true,
       json: false,
