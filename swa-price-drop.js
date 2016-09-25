@@ -6,19 +6,31 @@ const fs = require('fs');
 const osmosis = require('osmosis');
 const twilio = require('twilio');
 const winston = require('winston');
+const path = require('path');
+const os = require('os');
 
 if (process.argv.length <= 2) {
-  console.log("Usage: node " + __filename + " --config [/path/to/swa-price-drop.yml]");
+  console.log('Usage: \n' +
+    'node ' + __filename + ' [options] \n\n' +
+
+    'Options: \n' +
+    '    --config [/path/to/swa-price-drop.yml]            Path to configuration file (REQUIRED) \n' +
+    '    --log [/path/to/log/file.log]                     Path to log file (defaults to $HOME/swa-price-drop.log) \n' +
+    '    --loglevel [error/warn/info/verbose/debug/silly]  Log level (defaults to info)');
   process.exit(-1);
 }
 
 var configFile;
 var config;
+var logfile = path.resolve(os.homedir(), 'swa-price-drop.log');
+var loglevel = 'info';
+
+var rewriteYamlConfig = false; // do we need to re-write the conig yaml because of an updated price?
 var updatedFlights = [];
 
 process.argv.forEach((arg, i, argv) => {
   switch (arg) {
-    case "--config":
+    case '--config':
       configFile = argv[i + 1];
       try {
         config = yaml.safeLoad(fs.readFileSync(configFile, 'utf8'));
@@ -26,6 +38,12 @@ process.argv.forEach((arg, i, argv) => {
         console.log(e);
         process.exit(-1);
       }
+      break;
+    case '--log':
+      logfile = argv[i + 1];
+      break;
+    case '--loglevel':
+      loglevel = argv[i + 1];
       break;
   }
 });
@@ -35,8 +53,8 @@ var logger = new (winston.Logger)({
     new (winston.transports.File)({
       timestamp: true,
       json: false,
-      level: 'debug',
-      filename: 'swa-price-drop.log'
+      level: loglevel,
+      filename: logfile
     })
   ]
 });
@@ -56,7 +74,9 @@ const notify = (message) => {
           logger.error(err);
         }
       })
-    } catch(e) {}
+    } catch(e) {
+      logger.error(e);
+    }
   }
 
   // log the price drop
@@ -67,7 +87,7 @@ const checkSouthwest = (flightConfig, cb) => {
   const outboundFares = [];
   const returnFares = [];
 
-  logger.debug("Checking southwest.com for prices with parameters:\n" +
+  logger.info("Checking southwest.com for prices with parameters:\n" +
     "originAirport: " + flightConfig.originAirport + "\n" +
     "destinationAirport: " + flightConfig.destinationAirport + "\n" +
     "outboundDateString: " + flightConfig.outboundDate + "\n" +
@@ -159,21 +179,27 @@ const checkSouthwest = (flightConfig, cb) => {
       if (lowestOutboundFare < outboundPrice) {
         const message = "Price Drop: Outbound flight #" + flightConfig.outboundFlightNumber + " " +
           flightConfig.originAirport + "->" + flightConfig.destinationAirport +
+          " on " + flightConfig.outboundDate +
           " is now $" + lowestOutboundFare + " (was $" + flightConfig.outboundPrice + ")";
         notify(message);
 
         // update fare price in config
         flightConfig.outboundPrice = lowestOutboundFare;
+        // flag to indicate we need to re-write yaml config
+        rewriteYamlConfig = true;
       }
 
       if (lowestReturnFare < returnPrice) {
         const message = "Price Drop: Return flight #" + flightConfig.returnFlightNumber + " " +
           flightConfig.destinationAirport + "->" + flightConfig.originAirport +
+          " on " + flightConfig.returnDate +
           " is now $" + lowestReturnFare + " (was $" + flightConfig.returnPrice + ")";
         notify(message);
 
         // update fare price in config
         flightConfig.returnPrice = lowestReturnFare;
+        // flag to indicate we need to re-write yaml config
+        rewriteYamlConfig = true;
       }
 
       updatedFlights.push(flightConfig);
@@ -189,15 +215,18 @@ async.series([
     }, next);
   },
   function(next) {
-    // Update our yml with any new prices and re-generate it
-    config.flights = updatedFlights;
-    try {
-      fs.writeFileSync(configFile, yaml.safeDump(config), 'utf8');
-    } catch (e) {
-      console.log(e);
-      process.exit(-1);
+    if (rewriteYamlConfig) {
+      // Rewrite the yaml config with updated price(s)
+      config.flights = updatedFlights;
+      try {
+        fs.writeFileSync(configFile, yaml.safeDump(config), 'utf8');
+      } catch (e) {
+        console.log(e);
+        process.exit(-1);
+      }
+      next();
+    } else {
+      next();
     }
-    logger.info("All done checking flight prices and updating config file");
-    next();
   }
 ]);
