@@ -10,9 +10,10 @@
   "license": "MIT",
   "dependencies": {
     "async": "^2.0.1",
+    "js-yaml": "^3.6.1",
+    "moment": "^2.15.1",
     "osmosis": "^1.1.0",
     "twilio": "^2.10.0",
-    "js-yaml": "^3.6.1",
     "winston": "^2.2.0"
   }
 }
