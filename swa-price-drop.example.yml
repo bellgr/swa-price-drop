@@ -1,4 +1,5 @@
 flights:
+  # round trip
   - outboundFlightNumber: 1553
     returnFlightNumber: 2819
     originAirport: AUS
@@ -8,15 +9,14 @@ flights:
     adultPassengerCount: 1
     outboundPrice: 170
     returnPrice: 170
+  # one way
   - outboundFlightNumber: 4288
-    returnFlightNumber: 233
     originAirport: AUS
     destinationAirport: MSY
     outboundDate: 2/17/2017
-    returnDate: 2/20/2017
     adultPassengerCount: 1
     outboundPrice: 255
-    returnPrice: 255
+  # round trip
   - outboundFlightNumber: 5030
     returnFlightNumber: 6592
     originAirport: AUS

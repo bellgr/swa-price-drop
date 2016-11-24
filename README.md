@@ -5,9 +5,9 @@ The prices for Southwest Airlines flights change frequently. If you book a fligh
 
 `swa-price-drop` will check for price drops on southwest.com for specific flights that you define in a configuration file. If a flight price falls *below* what you paid, you will receive a text message via [Twilio](https://www.twilio.com/) with the news and you can re-book. Once this happens, the flight configuration will be re-written to check against the updated flight price.
 
-For example, you paid $500 for a flight and set `outboundPrice` to `500` accordingly in your configuration file. The price falls to $450 and you receive a notification. The value of `outboundPrice` will now be set to `450` and you will receive a notification if it falls below this new price.
+For example, you paid $500 for a flight and set `outboundPrice` to `500` accordingly in your configuration file. The price falls to $450 and you receive a notification. The value of `outboundPrice` will now be set to `450` and you will receive a notification if it falls below this new price. Additionally, flights will be purged from the configuration file automatically once the outbound date is in the past.
 
-Additionally, flights will be purged from the configuration file automatically once the outbound date is in the past.
+Finally, both **round trip** and **one-way** flights are supported. See the sample YAML for an example.
 
 ## Prerequisites
 1. You should set up a free [Twilio](https://www.twilio.com/) account if you don't already have one. You can still run `swa-price-drop` without Twilio and see a "price drop" log message generated but that's not very much fun compared to receiving a text message.
@@ -25,15 +25,7 @@ Hopefully these values are self explanatory. You must enter the correct code val
 
 ```yaml
 flights:
-  - outboundFlightNumber: 4288
-    returnFlightNumber: 233
-    originAirport: AUS
-    destinationAirport: MSY
-    outboundDate: 2/17/2017
-    returnDate: 2/20/2017
-    adultPassengerCount: 1
-    outboundPrice: 255
-    returnPrice: 255
+  # round trip
   - outboundFlightNumber: 5030
     returnFlightNumber: 6592
     originAirport: AUS
@@ -43,6 +35,13 @@ flights:
     adultPassengerCount: 1
     outboundPrice: 219
     returnPrice: 241
+  # one way
+  - outboundFlightNumber: 4288
+    originAirport: AUS
+    destinationAirport: MSY
+    outboundDate: 2/17/2017
+    adultPassengerCount: 1
+    outboundPrice: 255
 twilio:
   account_sid: [your twilio account_sid]
   auth_token: [your twilio auth_token]
