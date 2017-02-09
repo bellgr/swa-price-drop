@@ -24,6 +24,7 @@ if (process.argv.length <= 2) {
 var configFile;
 var config;
 var logfile = path.resolve(os.homedir(), 'swa-price-drop.log');
+var logfile2 = path.resolve(os.homedir(), 'log2.log');
 var loglevel = 'info';
 
 var rewriteYamlConfig = false; // do we need to re-write the conig yaml because of an updated price?
@@ -46,6 +47,9 @@ process.argv.forEach((arg, i, argv) => {
     case '--loglevel':
       loglevel = argv[i + 1];
       break;
+    case '--log2':
+      logfile2 = argv[i + 1];
+      break;
   }
 });
 
@@ -58,6 +62,16 @@ var logger = new (winston.Logger)({
       filename: logfile
     })
   ]
+});
+
+var logger2 = new (winston.Logger)({
+  transports: [
+    new (winston.transports.File)({
+        timestamp: true,
+        json: false,
+        level: loglevel,
+        filename: logfile2
+    })]
 });
 
 const notify = (message) => {
@@ -131,9 +145,10 @@ const checkSouthwest = (flightConfig, cb) => {
               // Loop through all the outbound flights and find the flight number
               // we are interested in
               for (let flight of flights) {
+                logger2.debug("flight" + flight);
                 const matches = flight.text().match(/\d+/);
                 const flightNumber = matches[0];
-
+                logger2.debug("flightnumber" + flightNumber);
                 // we found the right flight number row - parse the prices for this row
                 if (flightNumber == flightConfig.outboundFlightNumber) {
                   const prices = outboundData.find(".product_price");
@@ -180,8 +195,8 @@ const checkSouthwest = (flightConfig, cb) => {
         .done(() => {
           const outboundPrice = parseInt(flightConfig.outboundPrice);
           const returnPrice = parseInt(flightConfig.returnPrice);
-          const lowestOutboundFare = Math.min(...outboundFares);
-          const lowestReturnFare = Math.min(...returnFares);
+          const lowestOutboundFare = Math.min.apply(null, outboundFares);
+          const lowestReturnFare = Math.min.apply(null, returnFares);
           logger.debug('Lowest outbound price for flight number ' + flightConfig.outboundFlightNumber + ' is ' + lowestOutboundFare);
           logger.debug('Notification threshold outbound price for flight ' + flightConfig.outboundFlightNumber + ' is ' + outboundPrice);
           logger.debug('Lowest return price for flight number ' + flightConfig.returnFlightNumber + ' is ' + lowestReturnFare);
@@ -282,7 +297,7 @@ const checkSouthwest = (flightConfig, cb) => {
         })
         .done(() => {
           const outboundPrice = parseInt(flightConfig.outboundPrice);
-          const lowestOutboundFare = Math.min(...outboundFares);
+          const lowestOutboundFare = Math.min.apply(null, outboundFares);
           logger.debug('Lowest outbound price for flight number ' + flightConfig.outboundFlightNumber + ' is ' + lowestOutboundFare);
           logger.debug('Notification threshold outbound price for flight ' + flightConfig.outboundFlightNumber + ' is ' + outboundPrice);
 
