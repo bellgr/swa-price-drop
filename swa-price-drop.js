@@ -112,6 +112,9 @@ const checkSouthwest = (flightConfig, cb) => {
       const outboundFares = [];
       const returnFares = [];
 
+
+      const allOutboundFares = [];
+
       logger.info("Checking southwest.com for prices with parameters:\n" +
         "originAirport: " + flightConfig.originAirport + "\n" +
         "destinationAirport: " + flightConfig.destinationAirport + "\n" +
@@ -141,15 +144,22 @@ const checkSouthwest = (flightConfig, cb) => {
             .find("table[@id='faresOutbound']/tbody/tr")
             .then((outboundData) => {
               const flights = outboundData.find(".js-flight-performance");
-
               // Loop through all the outbound flights and find the flight number
               // we are interested in
               for (let flight of flights) {
-                logger2.debug("flight" + flight);
                 const matches = flight.text().match(/\d+/);
                 const flightNumber = matches[0];
-                logger2.debug("flightnumber" + flightNumber);
                 // we found the right flight number row - parse the prices for this row
+                for (let match of matches){
+                  const prices = outboundData.find(".product_price");
+                  for (let rawPrice of prices) {
+                    const priceMatch = rawPrice.toString().match(/\$.*?(\d+)/);
+                    const price = parseInt(priceMatch[1]);
+                    logger2.debug("Found price " + price + " for outbound flight " + match + " on " + flightConfig.outboundDate);
+                  }
+                }
+
+
                 if (flightNumber == flightConfig.outboundFlightNumber) {
                   const prices = outboundData.find(".product_price");
                   for (let rawPrice of prices) {
@@ -320,6 +330,10 @@ const checkSouthwest = (flightConfig, cb) => {
     }
   }
 }
+
+
+
+
 
 // main
 async.series([
