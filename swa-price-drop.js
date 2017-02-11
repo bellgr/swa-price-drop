@@ -332,6 +332,148 @@ const checkSouthwest = (flightConfig, cb) => {
 }
 
 
+const checkSouthwestDaily = (flightConfig, cb) => {
+  // round trip
+  if (flightConfig.returnDate) {
+    var now = moment();
+    var outboundDate = moment(flightConfig.outboundDate, "MM-DD-YYYY");
+    if (moment().isAfter(outboundDate)) {
+      // we are past the day of this outbound date so drop this trip from future checks
+      rewriteYamlConfig = true;
+      logger2.info("Removing " + JSON.stringify(flightConfig) + " from future checks because it is past " + flightConfig.outboundDate);
+      cb();
+    } else {
+      const outboundFares = [];
+      const returnFares = [];
+
+      const cheapestOutboundFlight = '';
+      const cheapestReturnFlight = '';
+      const allOutboundFares = [];
+
+      logger.info("Checking southwest.com for prices with parameters:\n" +
+        "originAirport: " + flightConfig.originAirport + "\n" +
+        "destinationAirport: " + flightConfig.destinationAirport + "\n" +
+        "outboundDateString: " + flightConfig.outboundDate + "\n" +
+        "returnDateString: " + flightConfig.returnDate + "\n" +
+        "adultPassengerCount: " + flightConfig.adultPassengerCount);
+
+      osmosis
+        .get("https://www.southwest.com")
+        .submit(".booking-form--form", {
+          twoWayTrip: true,
+          airTranRedirect: "",
+          returnAirport: "RoundTrip",
+          outboundTimeOfDay: "ANYTIME",
+          returnTimeOfDay: "ANYTIME",
+          seniorPassengerCount: 0,
+          fareType: "DOLLARS",
+          originAirport: flightConfig.originAirport,
+          destinationAirport: flightConfig.destinationAirport,
+          outboundDateString: flightConfig.outboundDate,
+          returnDateString: flightConfig.returnDate,
+          adultPassengerCount: flightConfig.adultPassengerCount
+        })
+        .set({
+          out: [
+            osmosis
+            .find("table[@id='faresOutbound']/tbody/tr")
+            .then((outboundData) => {
+              const flights = outboundData.find(".js-flight-performance");
+              // Loop through all the outbound flights and find the flight number
+              // we are interested in
+              for (let flight of flights) {
+                const matches = flight.text().match(/\d+/);
+                const flightNumber = matches[0];
+                // we found the right flight number row - parse the prices for this row
+                for (let match of matches){
+                  const prices = outboundData.find(".product_price");
+                  for (let rawPrice of prices) {
+                    const priceMatch = rawPrice.toString().match(/\$.*?(\d+)/);
+                    const price = parseInt(priceMatch[1]);
+                    logger2.debug("Found price " + price + " for outbound flight " + match + " on " + flightConfig.outboundDate);
+                    outboundFares.push({'Flight':flightNumber, 'price':price});
+                  }
+                }
+              }
+            })
+          ]
+        })
+        .set({
+          return: [
+            osmosis
+            .find("table[@id='faresReturn']/tbody/tr")
+            .then((returnData) => {
+              const flights = returnData.find(".js-flight-performance");
+
+              // Loop through all the return flights and find the flight number
+              // we are interested in
+              for (let flight of flights) {
+                const matches = flight.text().match(/\d+/);
+                const flightNumber = matches[0];
+
+                for (let match of matches){
+                  const prices = returnData.find(".product_price");
+                  for (let rawPrice of prices) {
+                    const priceMatch = rawPrice.toString().match(/\$.*?(\d+)/);
+                    const price = parseInt(priceMatch[1]);
+                    logger2.debug("Found price " + price + " for return flight " + match + " on " + flightConfig.returnDate);
+                    returnFares.push({'Flight':flightNumber, 'price':price});
+                  }
+                }
+              }
+            })
+          ]
+        })
+        .done(() => {
+          outboundFares.sort(function(a,b){
+            return a.price-b.price;
+          })
+          returnFares.sort(function(a,b){
+            return a.price-b.price;
+          })
+          const outboundPrice = parseInt(flightConfig.outboundPrice);
+          const returnPrice = parseInt(flightConfig.returnPrice);
+          const lowestOutboundFare = outboundFares[0].price;
+          const lowestReturnFare = returnFares[0].price;
+          // const lowestOutboundFare = Math.min.apply(null, outboundFares);
+          // const lowestReturnFare = Math.min.apply(null, returnFares);
+          logger2.debug('Lowest outbound price for flights is ' + lowestOutboundFare + ' on flight number #' + outboundFares[0].Flight);
+          logger2.debug('Notification threshold outbound price for flights is ' + outboundPrice);
+          logger2.debug('Lowest return price for flights is ' + lowestReturnFare + ' on flight number #' + returnFares[0].Flight);
+          logger2.debug('Notification threshold return price for flights is ' + returnPrice);
+
+          if (lowestOutboundFare < outboundPrice) {
+            const message = "Price Drop: Outbound flight #" + flightConfig.outboundFlightNumber + " " +
+              flightConfig.originAirport + "->" + flightConfig.destinationAirport +
+              " on " + flightConfig.outboundDate +
+              " is now $" + lowestOutboundFare + " (was $" + flightConfig.outboundPrice + ")";
+            notify(message);
+
+            // update fare price in config
+            flightConfig.outboundPrice = lowestOutboundFare;
+            // flag to indicate we need to re-write yaml config
+            rewriteYamlConfig = true;
+          }
+
+          if (lowestReturnFare < returnPrice) {
+            const message = "Price Drop: Return flight #" + flightConfig.returnFlightNumber + " " +
+              flightConfig.destinationAirport + "->" + flightConfig.originAirport +
+              " on " + flightConfig.returnDate +
+              " is now $" + lowestReturnFare + " (was $" + flightConfig.returnPrice + ")";
+            notify(message);
+
+            // update fare price in config
+            flightConfig.returnPrice = lowestReturnFare;
+            // flag to indicate we need to re-write yaml config
+            rewriteYamlConfig = true;
+          }
+
+          updatedFlights.push(flightConfig);
+          cb();
+        })
+    }
+  }
+}
 
 
 
@@ -339,7 +481,7 @@ const checkSouthwest = (flightConfig, cb) => {
 async.series([
   function(next) {
     async.each(config.flights, function(flight, cb) {
-      checkSouthwest(flight, cb);
+      checkSouthwestDaily(flight, cb);
     }, next);
   },
   function(next) {

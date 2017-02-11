@@ -1,0 +1,8 @@
+flights:
+  - originAirport: LGA
+    destinationAirport: MSY
+    outboundDate: 02/25/2017
+    returnDate: 03/02/2017
+    adultPassengerCount: 1
+    outboundPrice: 187
+    returnPrice: 216
