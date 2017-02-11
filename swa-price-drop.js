@@ -333,7 +333,7 @@ const checkSouthwest = (flightConfig, cb) => {
 
 
 const checkSouthwestDaily = (flightConfig, cb) => {
-  // round trip
+  // round trip search only
   if (flightConfig.returnDate) {
     var now = moment();
     var outboundDate = moment(flightConfig.outboundDate, "MM-DD-YYYY");
@@ -345,9 +345,6 @@ const checkSouthwestDaily = (flightConfig, cb) => {
     } else {
       const outboundFares = [];
       const returnFares = [];
-
-      const cheapestOutboundFlight = '';
-      const cheapestReturnFlight = '';
       const allOutboundFares = [];
 
       logger.info("Checking southwest.com for prices with parameters:\n" +
@@ -379,12 +376,11 @@ const checkSouthwestDaily = (flightConfig, cb) => {
             .find("table[@id='faresOutbound']/tbody/tr")
             .then((outboundData) => {
               const flights = outboundData.find(".js-flight-performance");
-              // Loop through all the outbound flights and find the flight number
-              // we are interested in
+              // Loop through all the outbound flights and add them all
               for (let flight of flights) {
                 const matches = flight.text().match(/\d+/);
                 const flightNumber = matches[0];
-                // we found the right flight number row - parse the prices for this row
+                // parse the prices for this row and save them
                 for (let match of matches){
                   const prices = outboundData.find(".product_price");
                   for (let rawPrice of prices) {
@@ -405,12 +401,11 @@ const checkSouthwestDaily = (flightConfig, cb) => {
             .then((returnData) => {
               const flights = returnData.find(".js-flight-performance");
 
-              // Loop through all the return flights and find the flight number
-              // we are interested in
+              // Loop through all the return flights and add them all
               for (let flight of flights) {
                 const matches = flight.text().match(/\d+/);
                 const flightNumber = matches[0];
-
+                // parse the prices for this row and save them
                 for (let match of matches){
                   const prices = returnData.find(".product_price");
                   for (let rawPrice of prices) {
@@ -425,6 +420,7 @@ const checkSouthwestDaily = (flightConfig, cb) => {
           ]
         })
         .done(() => {
+          // sort flights by price, log, and compare configured flights to searched flights
           outboundFares.sort(function(a,b){
             return a.price-b.price;
           })
@@ -435,8 +431,7 @@ const checkSouthwestDaily = (flightConfig, cb) => {
           const returnPrice = parseInt(flightConfig.returnPrice);
           const lowestOutboundFare = outboundFares[0].price;
           const lowestReturnFare = returnFares[0].price;
-          // const lowestOutboundFare = Math.min.apply(null, outboundFares);
-          // const lowestReturnFare = Math.min.apply(null, returnFares);
+
           logger2.debug('Lowest outbound price for flights is ' + lowestOutboundFare + ' on flight number #' + outboundFares[0].Flight);
           logger2.debug('Notification threshold outbound price for flights is ' + outboundPrice);
           logger2.debug('Lowest return price for flights is ' + lowestReturnFare + ' on flight number #' + returnFares[0].Flight);
