@@ -26,22 +26,16 @@ Hopefully these values are self explanatory. You must enter the correct code val
 ```yaml
 flights:
   # round trip
-  - outboundFlightNumber: 5030
-    returnFlightNumber: 6592
-    originAirport: AUS
+  - originAirport: AUS
     destinationAirport: MCO
     outboundDate: 3/11/2017
     returnDate: 3/18/2017
     adultPassengerCount: 1
     outboundPrice: 219
     returnPrice: 241
-  # one way
-  - outboundFlightNumber: 4288
-    originAirport: AUS
-    destinationAirport: MSY
-    outboundDate: 2/17/2017
-    adultPassengerCount: 1
-    outboundPrice: 255
+
+Note - this no longer requires a specified outbound/inbound flight number!
+
 twilio:
   account_sid: [your twilio account_sid]
   auth_token: [your twilio auth_token]
@@ -50,7 +44,7 @@ twilio:
 ```
 ## Usage
 ```
-$ node swa-price-drop.js --config ./swa-price-drop.yml --log ./swa-price-drop.log  --loglevel debug
+$ node swa-price-drop.js --config ./swa-price-drop.yml --log ./swa-price-drop.log  --loglevel debug --dates 01/01/2017 01/02/2017
 ```
 
 Only `--config` is required. By default, a log file will be placed in `$HOME/swa-price-drop.log` with minimal logging at the `info` level. There is no console output.

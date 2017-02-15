@@ -4,5 +4,5 @@ flights:
     outboundDate: 02/25/2017
     returnDate: 03/02/2017
     adultPassengerCount: 1
-    outboundPrice: 187
+    outboundPrice: 231
     returnPrice: 216
